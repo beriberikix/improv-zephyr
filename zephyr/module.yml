@@ -1,4 +1,4 @@
-name: improv-wifi
+name: improv-zephyr
 build:
   cmake: .
   kconfig: Kconfig

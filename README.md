@@ -21,7 +21,7 @@ Zephyr APIs, so it should run on any Zephyr Wi-Fi target.
 ## Layout
 
 ```
-improv-wifi/                  ← Zephyr module
+improv-zephyr/                  ← Zephyr module
 ├── zephyr/module.yml         Module manifest (build + Kconfig entry points)
 ├── CMakeLists.txt            zephyr_library(), gated on CONFIG_IMPROV_WIFI
 ├── Kconfig                   CONFIG_IMPROV_WIFI / _SERIAL / _BLE / _REDIRECT_URL / ...
@@ -48,10 +48,10 @@ Add the module to your application's `west.yml`:
 ```yaml
 manifest:
   projects:
-    - name: improv-wifi
-      url: https://github.com/beriberikix/improv-wifi
+    - name: improv-zephyr
+      url: https://github.com/beriberikix/improv-zephyr
       revision: main
-      path: modules/improv-wifi
+      path: modules/improv-zephyr
 ```
 
 Run `west update`. Zephyr auto-discovers the module via `zephyr/module.yml`. Then in your
@@ -96,10 +96,10 @@ dependency.
 ### Standalone (this repo as the west manifest)
 
 ```sh
-west init -l improv-wifi      # run from the directory containing this repo
+west init -l improv-zephyr      # run from the directory containing this repo
 west update                   # fetches Zephyr + hal_espressif
 west zephyr-export
-west build -b esp32s3_devkitc/esp32s3/procpu improv-wifi/samples/serial
+west build -b esp32s3_devkitc/esp32s3/procpu improv-zephyr/samples/serial
 west flash
 ```
 

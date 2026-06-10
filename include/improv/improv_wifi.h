@@ -1,5 +1,5 @@
 /*
- * improv_wifi.h - Public entry point for the improv-wifi Zephyr module.
+ * improv_wifi.h - Public entry point for the improv-zephyr module.
  *
  * Most applications only need this one call. It loads any stored Wi-Fi
  * credentials, starts Wi-Fi management, and brings up whichever transports are

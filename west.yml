@@ -1,4 +1,4 @@
-# West manifest for the standalone improv-wifi Zephyr application (T2 topology).
+# West manifest for the standalone improv-zephyr Zephyr application (T2 topology).
 #
 # Usage (first time):
 #   west init -l .          # run from inside this repo
@@ -27,4 +27,4 @@ manifest:
           - segger
 
   self:
-    path: improv-wifi
+    path: improv-zephyr

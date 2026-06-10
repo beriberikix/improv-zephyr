@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
-# Zephyr module build entry for improv-wifi. Sources are only compiled when the
+# Zephyr module build entry for improv-zephyr. Sources are only compiled when the
 # consuming application sets CONFIG_IMPROV_WIFI=y.
 
 if(CONFIG_IMPROV_WIFI)

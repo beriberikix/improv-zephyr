@@ -5,7 +5,7 @@ compatible with the Web Serial installer at <https://www.improv-wifi.com/serial/
 
 ## Build & flash (esp32s3_devkitc)
 
-From a Zephyr workspace that includes the improv-wifi module (see the top-level
+From a Zephyr workspace that includes the improv-zephyr module (see the top-level
 README for both standalone and external-module setups):
 
 ```sh
@@ -17,7 +17,7 @@ If the module lives outside your workspace, point the build at it:
 
 ```sh
 west build -b esp32s3_devkitc/esp32s3/procpu samples/serial \
-  -- -DEXTRA_ZEPHYR_MODULES=/abs/path/to/improv-wifi
+  -- -DEXTRA_ZEPHYR_MODULES=/abs/path/to/improv-zephyr
 ```
 
 ## Provision

@@ -51,6 +51,6 @@ int improv_wifi_init(void)
 		ret = err;
 	}
 
-	LOG_INF("improv-wifi ready (board: %s)", CONFIG_BOARD);
+	LOG_INF("improv-zephyr ready (board: %s)", CONFIG_BOARD);
 	return ret;
 }

@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
-# Kconfig options for the improv-wifi module. Sourced into the application's
+# Kconfig options for the improv-zephyr module. Sourced into the application's
 # configuration tree by Zephyr's module system (see zephyr/module.yml).
 
 config IMPROV_WIFI
@@ -43,7 +43,7 @@ config IMPROV_REDIRECT_URL
 
 config IMPROV_FIRMWARE_NAME
 	string "Firmware name (device info)"
-	default "improv-wifi-zephyr"
+	default "improv-zephyr"
 
 config IMPROV_FIRMWARE_VERSION
 	string "Firmware version (device info)"
