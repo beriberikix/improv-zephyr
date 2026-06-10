@@ -6,6 +6,7 @@
 
 #include "wifi_prov.h"
 
+#include <errno.h>
 #include <string.h>
 
 #include <zephyr/kernel.h>
@@ -66,7 +67,7 @@ static void save_credentials(void)
 	if (err) {
 		LOG_WRN("failed to persist credentials: %d", err);
 	} else {
-		LOG_INF("credentials stored for '%s'", attempt.ssid);
+		LOG_INF("credentials stored for '%s'", (const char *)attempt.ssid);
 	}
 }
 #endif
@@ -99,8 +100,16 @@ static void wifi_event(struct net_mgmt_event_callback *cb, uint64_t mgmt_event,
 		const struct wifi_scan_result *entry =
 			(const struct wifi_scan_result *)cb->info;
 
-		if (scan_cb && entry->ssid_length > 0) {
-			scan_cb((const char *)entry->ssid, entry->rssi,
+		/* entry->ssid is length-delimited, not guaranteed NUL-terminated;
+		 * copy into a bounded, terminated buffer before handing it on.
+		 */
+		if (scan_cb && entry != NULL && entry->ssid_length > 0) {
+			char ssid[WIFI_SSID_MAX_LEN + 1];
+			uint8_t len = MIN(entry->ssid_length, WIFI_SSID_MAX_LEN);
+
+			memcpy(ssid, entry->ssid, len);
+			ssid[len] = '\0';
+			scan_cb(ssid, entry->rssi,
 				entry->security != WIFI_SECURITY_TYPE_NONE);
 		}
 		break;
@@ -200,7 +209,10 @@ int wifi_prov_connect(const uint8_t *ssid, uint8_t ssid_len, const uint8_t *psk,
 		return -ENODEV;
 	}
 
-	if (ssid_len == 0 || ssid_len > IMPROV_MAX_SSID_LEN) {
+	if (ssid == NULL || ssid_len == 0 || ssid_len > IMPROV_MAX_SSID_LEN) {
+		return -EINVAL;
+	}
+	if (psk_len > IMPROV_MAX_PASSWORD_LEN || (psk_len > 0 && psk == NULL)) {
 		return -EINVAL;
 	}
 
@@ -208,7 +220,9 @@ int wifi_prov_connect(const uint8_t *ssid, uint8_t ssid_len, const uint8_t *psk,
 	memcpy(attempt.ssid, ssid, ssid_len);
 	attempt.ssid[ssid_len] = '\0';
 	attempt.ssid_len = ssid_len;
-	memcpy(attempt.psk, psk, psk_len);
+	if (psk_len > 0) {
+		memcpy(attempt.psk, psk, psk_len);
+	}
 	attempt.psk[psk_len] = '\0';
 	attempt.psk_len = psk_len;
 	attempt.pending = true;
@@ -225,7 +239,7 @@ int wifi_prov_connect(const uint8_t *ssid, uint8_t ssid_len, const uint8_t *psk,
 		.timeout = SYS_FOREVER_MS,
 	};
 
-	LOG_INF("connecting to '%s'", attempt.ssid);
+	LOG_INF("connecting to '%s'", (const char *)attempt.ssid);
 
 	int err = net_mgmt(NET_REQUEST_WIFI_CONNECT, iface, &params, sizeof(params));
 

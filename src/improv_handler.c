@@ -6,6 +6,7 @@
 
 #include "improv_handler.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include <zephyr/kernel.h>
@@ -188,7 +189,7 @@ static void scan_done(void)
 
 static void handle_wifi_settings(const struct improv_rpc *cmd)
 {
-	LOG_INF("WIFI_SETTINGS for SSID '%s'", cmd->ssid);
+	LOG_INF("WIFI_SETTINGS for SSID '%s'", (const char *)cmd->ssid);
 
 	set_state(IMPROV_STATE_PROVISIONING);
 	current_error = IMPROV_ERROR_NONE;

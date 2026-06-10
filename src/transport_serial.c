@@ -10,6 +10,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <errno.h>
+
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/kernel.h>
@@ -73,15 +75,25 @@ static void uart_isr(const struct device *dev, void *user_data)
 		struct improv_rpc cmd;
 		enum improv_error err;
 		enum improv_parse_result r = improv_serial_feed(&parser, c, &cmd, &err);
+		struct serial_msg m;
 
 		if (r == IMPROV_PARSE_RPC_READY) {
-			struct serial_msg m = { .is_error = false, .cmd = cmd };
-
-			(void)k_msgq_put(&serial_msgq, &m, K_NO_WAIT);
+			m = (struct serial_msg){ .is_error = false, .cmd = cmd };
 		} else if (r == IMPROV_PARSE_ERROR) {
-			struct serial_msg m = { .is_error = true, .err = err };
+			m = (struct serial_msg){ .is_error = true, .err = err };
+		} else {
+			continue;
+		}
 
+		/* Drop the oldest queued message to make room rather than silently
+		 * dropping the newest if the worker is briefly behind.
+		 */
+		if (k_msgq_put(&serial_msgq, &m, K_NO_WAIT) != 0) {
+			struct serial_msg discard;
+
+			(void)k_msgq_get(&serial_msgq, &discard, K_NO_WAIT);
 			(void)k_msgq_put(&serial_msgq, &m, K_NO_WAIT);
+			LOG_WRN("serial msgq full; dropped an older message");
 		}
 	}
 }
