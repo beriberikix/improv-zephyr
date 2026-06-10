@@ -1,0 +1,30 @@
+# West manifest for the standalone improv-wifi Zephyr application (T2 topology).
+#
+# Usage (first time):
+#   west init -l .          # run from inside this repo
+#   west update             # fetches Zephyr + its modules (incl. hal_espressif)
+#   west zephyr-export
+#
+# If you already have a Zephyr workspace with the esp32 HAL, you can instead
+# build this app against that workspace without re-importing Zephyr (see README).
+manifest:
+  remotes:
+    - name: zephyrproject-rtos
+      url-base: https://github.com/zephyrproject-rtos
+
+  projects:
+    - name: zephyr
+      remote: zephyrproject-rtos
+      # Pin to a recent stable. Tested locally against Zephyr 4.x.
+      revision: v4.1.0
+      import:
+        # Only pull the modules this app actually needs to keep the workspace
+        # small. hal_espressif provides the esp32 Wi-Fi/BT blobs and drivers.
+        name-allowlist:
+          - hal_espressif
+          - cmsis
+          - mbedtls
+          - segger
+
+  self:
+    path: improv-wifi

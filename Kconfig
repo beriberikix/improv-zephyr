@@ -1,0 +1,56 @@
+# SPDX-License-Identifier: Apache-2.0
+#
+# Kconfig options for the improv-wifi module. Sourced into the application's
+# configuration tree by Zephyr's module system (see zephyr/module.yml).
+
+config IMPROV_WIFI
+	bool "Improv-WiFi provisioning protocol"
+	help
+	  Enable the improv-wifi provisioning protocol
+	  (https://www.improv-wifi.com/). Provides a transport-agnostic state
+	  machine plus serial and/or BLE transports and Zephyr Wi-Fi management
+	  glue. Call improv_wifi_init() from your application.
+
+if IMPROV_WIFI
+
+config IMPROV_SERIAL
+	bool "Improv serial transport"
+	default y
+	depends on SERIAL
+	select UART_INTERRUPT_DRIVEN
+	help
+	  Listen for improv frames on the console UART (zephyr,console).
+	  Compatible with the Web Serial installer at
+	  https://www.improv-wifi.com/serial/.
+
+config IMPROV_BLE
+	bool "Improv BLE (GATT) transport"
+	default n
+	depends on BT_PERIPHERAL
+	help
+	  Expose the improv GATT service. Compatible with the Web Bluetooth
+	  installer at https://www.improv-wifi.com/ble/. May be enabled alongside
+	  the serial transport.
+
+config IMPROV_REDIRECT_URL
+	string "Redirect URL returned after successful provisioning"
+	default ""
+	help
+	  URL returned as the first string of the Wi-Fi settings RPC result; the
+	  installer shows it as a "Next" link. If it contains the token "{ip}" the
+	  device's assigned IPv4 address is substituted. If left empty, the device
+	  falls back to "http://<ip>/". Set to a single space to suppress the URL.
+
+config IMPROV_FIRMWARE_NAME
+	string "Firmware name (device info)"
+	default "improv-wifi-zephyr"
+
+config IMPROV_FIRMWARE_VERSION
+	string "Firmware version (device info)"
+	default "0.1.0"
+
+config IMPROV_DEVICE_NAME
+	string "Human readable device name (device info)"
+	default "Zephyr Improv"
+
+endif # IMPROV_WIFI
