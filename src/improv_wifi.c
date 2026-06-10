@@ -1,12 +1,11 @@
 /*
- * main.c - Improv-WiFi provisioning for Zephyr.
- *
- * Wires the Wi-Fi management layer, the improv state machine, and the enabled
- * transports together. JS-over-Serial is the default and primary path; BLE is
- * built in when CONFIG_IMPROV_BLE is set.
+ * improv_wifi.c - Module entry point: wire Wi-Fi, the state machine, and the
+ * enabled transports together behind a single improv_wifi_init() call.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
+
+#include <improv/improv_wifi.h>
 
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
@@ -19,11 +18,12 @@
 #include "improv_transport.h"
 #include "wifi_prov.h"
 
-LOG_MODULE_REGISTER(improv_main, LOG_LEVEL_INF);
+LOG_MODULE_REGISTER(improv_wifi, LOG_LEVEL_INF);
 
-int main(void)
+int improv_wifi_init(void)
 {
-	LOG_INF("Improv-WiFi for Zephyr starting (board: %s)", CONFIG_BOARD);
+	int err;
+	int ret = 0;
 
 #if defined(CONFIG_SETTINGS)
 	/* Load persisted Wi-Fi credentials before attempting connect-stored. */
@@ -39,17 +39,18 @@ int main(void)
 	/* Initial improv state reflects whether Wi-Fi is already up. */
 	improv_handler_init();
 
-	int err = improv_serial_init();
-
+	err = improv_serial_init();
 	if (err) {
 		LOG_ERR("serial transport init failed: %d", err);
+		ret = err;
 	}
 
 	err = improv_ble_init();
 	if (err) {
 		LOG_ERR("BLE transport init failed: %d", err);
+		ret = err;
 	}
 
-	LOG_INF("Improv-WiFi ready");
-	return 0;
+	LOG_INF("improv-wifi ready (board: %s)", CONFIG_BOARD);
+	return ret;
 }

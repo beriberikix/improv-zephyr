@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "improv.h"
+#include <improv/improv.h>
 
 #include <string.h>
 

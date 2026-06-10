@@ -1,10 +1,17 @@
 # SPDX-License-Identifier: Apache-2.0
 #
-# Application configuration for the improv-wifi provisioning firmware.
+# Kconfig options for the improv-wifi module. Sourced into the application's
+# configuration tree by Zephyr's module system (see zephyr/module.yml).
 
-mainmenu "Improv-WiFi provisioning"
+config IMPROV_WIFI
+	bool "Improv-WiFi provisioning protocol"
+	help
+	  Enable the improv-wifi provisioning protocol
+	  (https://www.improv-wifi.com/). Provides a transport-agnostic state
+	  machine plus serial and/or BLE transports and Zephyr Wi-Fi management
+	  glue. Call improv_wifi_init() from your application.
 
-menu "Improv-WiFi"
+if IMPROV_WIFI
 
 config IMPROV_SERIAL
 	bool "Improv serial transport"
@@ -12,20 +19,18 @@ config IMPROV_SERIAL
 	depends on SERIAL
 	select UART_INTERRUPT_DRIVEN
 	help
-	  Enable the improv-wifi serial transport. Listens on the console UART
-	  (zephyr,console) for improv frames and is compatible with the
-	  Web Serial installer at https://www.improv-wifi.com/serial/.
+	  Listen for improv frames on the console UART (zephyr,console).
+	  Compatible with the Web Serial installer at
+	  https://www.improv-wifi.com/serial/.
 
 config IMPROV_BLE
 	bool "Improv BLE (GATT) transport"
 	default n
 	depends on BT_PERIPHERAL
 	help
-	  Enable the improv-wifi BLE transport. Exposes the improv GATT service
-	  and is compatible with the Web Bluetooth installer at
-	  https://www.improv-wifi.com/ble/. Can be enabled alongside the serial
-	  transport, but note that simultaneous Wi-Fi + BT on ESP32 can be
-	  resource constrained.
+	  Expose the improv GATT service. Compatible with the Web Bluetooth
+	  installer at https://www.improv-wifi.com/ble/. May be enabled alongside
+	  the serial transport.
 
 config IMPROV_REDIRECT_URL
 	string "Redirect URL returned after successful provisioning"
@@ -48,6 +53,4 @@ config IMPROV_DEVICE_NAME
 	string "Human readable device name (device info)"
 	default "Zephyr Improv"
 
-endmenu
-
-source "Kconfig.zephyr"
+endif # IMPROV_WIFI

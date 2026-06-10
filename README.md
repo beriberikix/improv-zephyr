@@ -1,107 +1,133 @@
 # Improv-WiFi for Zephyr
 
-A C implementation of the [Improv Wi-Fi](https://www.improv-wifi.com/) provisioning
-protocol for [Zephyr RTOS](https://www.zephyrproject.org/). It lets a browser hand
-Wi-Fi credentials to the device over **Web Serial** or **Web Bluetooth**, using native
-Zephyr subsystems — Wi-Fi Management (`net_mgmt`), the `wifi_credentials` library, the
-UART driver, and the Bluetooth GATT stack — rather than any Arduino library.
+A reusable [Zephyr](https://www.zephyrproject.org/) **module** implementing the
+[Improv Wi-Fi](https://www.improv-wifi.com/) provisioning protocol in C. It lets a
+browser hand Wi-Fi credentials to the device over **Web Serial** or **Web Bluetooth**,
+using native Zephyr subsystems — Wi-Fi Management (`net_mgmt`), the `wifi_credentials`
+library, the UART driver, and the Bluetooth GATT stack — rather than any Arduino library.
 
-It is a port of the official C++ SDK ([improv-wifi/sdk-cpp](https://github.com/improv-wifi/sdk-cpp))
-and works with all the Improv installers:
+Ported from the official C++ SDK ([improv-wifi/sdk-cpp](https://github.com/improv-wifi/sdk-cpp)).
+Works with every Improv installer:
 
-| Installer | Transport | Protocol | Priority |
-|-----------|-----------|----------|----------|
-| <https://www.improv-wifi.com/serial/> | Web Serial (USB UART) | improv serial | **primary, tested** |
-| a raw serial terminal | physical UART | improv serial | secondary |
-| <https://www.improv-wifi.com/ble/> | Web Bluetooth | improv BLE GATT | optional |
+| Installer | Transport | Protocol |
+|-----------|-----------|----------|
+| <https://www.improv-wifi.com/serial/> | Web Serial (USB UART) | improv serial |
+| a raw serial terminal | physical UART | improv serial |
+| <https://www.improv-wifi.com/ble/> | Web Bluetooth | improv BLE GATT |
 
-Tested on **esp32s3_devkitc**, but the code is board-agnostic and uses only portable
+Validated on **esp32s3_devkitc**, but the code is board-agnostic and uses only portable
 Zephyr APIs, so it should run on any Zephyr Wi-Fi target.
 
-## Architecture
+## Layout
 
 ```
-src/
-  improv.c / improv.h        Protocol core: enums, checksum, streaming serial parser,
-                             RPC parser, response + serial-frame builders (port of sdk-cpp).
-  improv_handler.c/.h        Transport-agnostic state machine + RPC command dispatch.
-  wifi_prov.c/.h             net_mgmt connect/scan, DHCP, credential persistence.
-  transport_serial.c         Interrupt-driven UART RX/TX (CONFIG_IMPROV_SERIAL).
-  transport_ble.c            GATT service + advertising      (CONFIG_IMPROV_BLE).
-  main.c                     Boot: settings load, Wi-Fi init, handler, transports.
+improv-wifi/                  ← Zephyr module
+├── zephyr/module.yml         Module manifest (build + Kconfig entry points)
+├── CMakeLists.txt            zephyr_library(), gated on CONFIG_IMPROV_WIFI
+├── Kconfig                   CONFIG_IMPROV_WIFI / _SERIAL / _BLE / _REDIRECT_URL / ...
+├── include/improv/
+│   ├── improv.h              Protocol core: enums, checksum, parser, builders
+│   └── improv_wifi.h         Public entry point: improv_wifi_init()
+├── src/
+│   ├── improv.c              Protocol core (port of sdk-cpp)
+│   ├── improv_handler.c      Transport-agnostic state machine + RPC dispatch
+│   ├── improv_wifi.c         improv_wifi_init() wiring
+│   ├── wifi_prov.c           net_mgmt connect/scan, DHCP, credential persistence
+│   ├── transport_serial.c    Interrupt-driven UART RX/TX (CONFIG_IMPROV_SERIAL)
+│   └── transport_ble.c       GATT service + advertising      (CONFIG_IMPROV_BLE)
+├── samples/
+│   ├── serial/               JS Web Serial example app
+│   └── ble/                  Web Bluetooth example app
+└── west.yml                  Manifest for standalone development
 ```
 
-The handler emits logical `(type, payload)` messages; each transport renders them: the
-serial transport wraps them in an `IMPROV` frame, the BLE transport notifies the matching
-characteristic. Both can be active at once.
+## Using it as a module in another project
 
-## Configuration
+Add the module to your application's `west.yml`:
 
-Key Kconfig options (see `Kconfig`):
+```yaml
+manifest:
+  projects:
+    - name: improv-wifi
+      url: https://github.com/beriberikix/improv-wifi
+      revision: main
+      path: modules/improv-wifi
+```
 
-- `CONFIG_IMPROV_SERIAL` (default `y`) — serial transport.
-- `CONFIG_IMPROV_BLE` (default `n`) — BLE transport.
-- `CONFIG_IMPROV_REDIRECT_URL` — URL returned after successful provisioning (shown as a
-  "Next" link). Supports an `{ip}` token; if empty, defaults to `http://<ip>/`; a single
-  space suppresses the URL.
+Run `west update`. Zephyr auto-discovers the module via `zephyr/module.yml`. Then in your
+app's `prj.conf` enable the protocol and the Wi-Fi/transport options it needs (see
+`samples/serial/prj.conf` for the full list):
+
+```ini
+CONFIG_IMPROV_WIFI=y
+CONFIG_IMPROV_SERIAL=y        # and/or CONFIG_IMPROV_BLE=y
+CONFIG_WIFI=y
+CONFIG_WIFI_CREDENTIALS=y
+# ... networking + settings, as in the samples
+```
+
+and call the single entry point from your `main()`:
+
+```c
+#include <improv/improv_wifi.h>
+
+int main(void)
+{
+	improv_wifi_init();   /* loads stored creds, starts Wi-Fi + transports */
+	return 0;
+}
+```
+
+`improv_wifi_init()` brings up whichever transports are enabled in Kconfig. For lower-level
+use, `<improv/improv.h>` exposes the pure protocol core (parser/builders) with no Zephyr
+dependency.
+
+### Key Kconfig options
+
+- `CONFIG_IMPROV_WIFI` — enable the module.
+- `CONFIG_IMPROV_SERIAL` (default `y`) / `CONFIG_IMPROV_BLE` (default `n`) — transports;
+  both may be enabled together.
+- `CONFIG_IMPROV_REDIRECT_URL` — URL returned after provisioning (shown as a "Next" link);
+  supports an `{ip}` token; empty → `http://<ip>/`; a single space suppresses it.
 - `CONFIG_IMPROV_FIRMWARE_NAME` / `_FIRMWARE_VERSION` / `_DEVICE_NAME` — device-info strings.
 
-## Build & flash
+## Building the samples
 
-### Option A — build inside an existing Zephyr workspace (recommended here)
-
-If you already have a Zephyr workspace (Zephyr 4.4+) with the esp32 HAL, point the build at
-this app directory:
+### Standalone (this repo as the west manifest)
 
 ```sh
-# from a shell with west available and ZEPHYR_BASE set to your workspace's zephyr/
-cd /path/to/improv-wifi
-west build -b esp32s3_devkitc/esp32s3/procpu .
-west flash
-west espressif monitor      # 115200 baud
-```
-
-### Option B — standalone west workspace
-
-```sh
-west init -l improv-wifi    # run from the directory containing this repo
-west update                 # fetches Zephyr + hal_espressif (multi-GB)
+west init -l improv-wifi      # run from the directory containing this repo
+west update                   # fetches Zephyr + hal_espressif
 west zephyr-export
-cd improv-wifi
-west build -b esp32s3_devkitc/esp32s3/procpu .
+west build -b esp32s3_devkitc/esp32s3/procpu improv-wifi/samples/serial
 west flash
 ```
 
-### Add BLE
+### Inside an existing Zephyr workspace
+
+If the module is not in your workspace manifest, point the build at it directly:
 
 ```sh
-west build -b esp32s3_devkitc/esp32s3/procpu . -- -DEXTRA_CONF_FILE=overlay-ble.conf
+west build -b esp32s3_devkitc/esp32s3/procpu samples/serial \
+  -- -DEXTRA_ZEPHYR_MODULES=$(pwd)
+west flash
 ```
 
-## Provisioning
-
-1. Flash and open the serial monitor; the device boots to the `AUTHORIZED` state.
-2. Open <https://www.improv-wifi.com/serial/> in Chrome or Edge, click **Connect**, and
-   select the board's serial port.
-3. Enter the SSID and password. The device transitions `PROVISIONING → PROVISIONED`,
-   obtains a DHCP lease, and returns the redirect URL as the **Next** link.
-4. Credentials persist; on reboot the device auto-connects (boots to `PROVISIONED`).
-
-For BLE, open <https://www.improv-wifi.com/ble/> instead and select the advertised
-"Zephyr Improv" device.
+Swap `samples/serial` for `samples/ble` for the Web Bluetooth example. See each sample's
+README for provisioning steps.
 
 ## Notes
 
-- **Shared console:** improv frames and log output share the console UART. The `IMPROV`
-  signature lets the installer extract frames from the surrounding log text (the same
-  approach ESPHome uses). If you want a perfectly clean stream, route logging to RTT or a
-  second UART and keep the improv transport on the console. Re-requesting the current
-  state always re-sends the Wi-Fi settings result, so a rare log/frame interleave is
-  self-correcting.
-- **Identify:** the IDENTIFY capability is only advertised when a `led0` alias exists.
-  esp32s3_devkitc has no simple LED, so identify is a no-op there.
-- **ESP32 Wi-Fi + BT coexistence** can be resource constrained; the serial-only image is
-  the validated default.
+- **Shared console:** improv serial frames and log output share the console UART; the
+  `IMPROV` signature lets the installer extract frames from the log text (the approach
+  ESPHome uses). For a perfectly clean stream, route logging to RTT or a second UART.
+- **Port choice:** with the Web Serial installer, select the USB-UART bridge port, not a
+  native USB-JTAG/CDC port — the latter re-enumerates on reset and the browser drops it.
+- **Wi-Fi security:** connect uses `WIFI_SECURITY_TYPE_PSK` (WPA2). A WPA3-only AP would
+  need `WIFI_SECURITY_TYPE_SAE`/`WPA_AUTO_PERSONAL`.
+- **Identify:** advertised only when a `led0` alias exists; esp32s3_devkitc has none.
+- **ESP32 Wi-Fi + BT coexistence** can be resource constrained; serial-only is the
+  validated default.
 
 ## License
 

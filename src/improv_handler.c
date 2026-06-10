@@ -11,7 +11,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
-#include "improv.h"
+#include <improv/improv.h>
 #include "wifi_prov.h"
 
 LOG_MODULE_REGISTER(improv_handler, LOG_LEVEL_INF);

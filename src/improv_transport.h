@@ -15,7 +15,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "improv.h"
+#include <improv/improv.h>
 
 /* Sends a logical improv message. @payload is the un-framed body:
  *  - IMPROV_TYPE_CURRENT_STATE / IMPROV_TYPE_ERROR_STATE: a single state/error byte

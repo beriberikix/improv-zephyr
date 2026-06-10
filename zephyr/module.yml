@@ -1,0 +1,4 @@
+name: improv-wifi
+build:
+  cmake: .
+  kconfig: Kconfig

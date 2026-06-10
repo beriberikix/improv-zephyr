@@ -10,7 +10,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "improv.h"
+#include <improv/improv.h>
 #include "improv_transport.h"
 
 /* Initialise the handler. Sets the initial state to PROVISIONED if Wi-Fi is

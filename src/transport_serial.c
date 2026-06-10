@@ -15,7 +15,7 @@
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
 
-#include "improv.h"
+#include <improv/improv.h>
 #include "improv_handler.h"
 #include "improv_transport.h"
 

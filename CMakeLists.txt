@@ -1,15 +1,20 @@
 # SPDX-License-Identifier: Apache-2.0
-cmake_minimum_required(VERSION 3.20.0)
+#
+# Zephyr module build entry for improv-wifi. Sources are only compiled when the
+# consuming application sets CONFIG_IMPROV_WIFI=y.
 
-find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
-project(improv_wifi LANGUAGES C)
+if(CONFIG_IMPROV_WIFI)
+  zephyr_library()
 
-target_sources(app PRIVATE
-  src/main.c
-  src/improv.c
-  src/improv_handler.c
-  src/wifi_prov.c
-)
+  zephyr_include_directories(include)
 
-target_sources_ifdef(CONFIG_IMPROV_SERIAL app PRIVATE src/transport_serial.c)
-target_sources_ifdef(CONFIG_IMPROV_BLE    app PRIVATE src/transport_ble.c)
+  zephyr_library_sources(
+    src/improv.c
+    src/improv_handler.c
+    src/improv_wifi.c
+    src/wifi_prov.c
+  )
+
+  zephyr_library_sources_ifdef(CONFIG_IMPROV_SERIAL src/transport_serial.c)
+  zephyr_library_sources_ifdef(CONFIG_IMPROV_BLE    src/transport_ble.c)
+endif()
