@@ -1,0 +1,15 @@
+# Zephyr / west build artifacts
+build/
+build*/
+twister-out/
+*.o
+*.bin
+*.elf
+
+# West workspace metadata (when this app is the manifest repo, .west lives one
+# level up; keep any local copy out of the repo regardless).
+.west/
+
+# Editor / OS cruft
+*.swp
+.DS_Store
